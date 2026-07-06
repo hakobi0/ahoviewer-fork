@@ -14,7 +14,7 @@ ahoviewer has been one of my favorite pieces of software on Linux — I've been 
 since 2017 and wanted to keep using it. For the last few years, though, it had become
 broken for me: it wouldn't open, or when it did it crashed constantly, and Rule34 booru
 support (which used to work) had stopped working in the last version. This fork exists to
-get it running again for me and to bring back the features I relied on.
+get it running again for me and for anyone who wants to keep using ahoviewer.
 
 The following features and fixes were added on top of upstream. All development in
 this fork was done with the assistance of Claude (Anthropic's AI).
