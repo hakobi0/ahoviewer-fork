@@ -20,7 +20,7 @@ The following features and fixes were added on top of upstream. All development 
 this fork was done with the assistance of Claude (Anthropic's AI).
 
 ### New features
-* **rule34.xxx support** — added as a default booru site (Gelbooru Beta 0.2 type).
+* **rule34 support** — added as a default booru site (Gelbooru Beta 0.2 type).
   Because the API now requires authentication, it ships preconfigured; put your
   `api_key=...&user_id=...` credentials in the site's password field.
 * **Generalised Gelbooru API-key handling** — any Gelbooru-type site whose password
