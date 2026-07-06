@@ -5,6 +5,7 @@
 #include <curl/curl.h>
 #include <giomm.h>
 #include <glibmm.h>
+#include <mutex>
 
 namespace AhoViewer::Booru
 {
@@ -34,6 +35,9 @@ namespace AhoViewer::Booru
         void set_imagefetcher(ImageFetcher* f) { m_ImageFetcher = f; }
         void clear()
         {
+            // m_Buffer is written to by write_cb on the ImageFetcher/perform thread, so
+            // guard it here to avoid freeing the buffer out from under a concurrent write
+            std::scoped_lock lock{ m_BufferMutex };
             m_Buffer.clear();
             std::vector<unsigned char>().swap(m_Buffer);
         }
@@ -46,7 +50,11 @@ namespace AhoViewer::Booru
         bool is_active() const { return m_Active; }
         std::string get_url() const { return m_Url; }
 
-        const std::vector<unsigned char> get_buffer() { return m_Buffer; }
+        const std::vector<unsigned char> get_buffer()
+        {
+            std::scoped_lock lock{ m_BufferMutex };
+            return m_Buffer;
+        }
         unsigned char* get_data() { return m_Buffer.data(); }
         size_t get_data_size() const { return m_Buffer.size(); }
 
@@ -79,6 +87,9 @@ namespace AhoViewer::Booru
         CURLcode m_Response;
         std::string m_Url;
         std::vector<unsigned char> m_Buffer;
+        // Protects m_Buffer, which is appended to from the download thread (write_cb)
+        // while other threads may read/clear/save it
+        mutable std::mutex m_BufferMutex;
 
         std::atomic<bool> m_Active{ false }, m_Pause{ false };
         std::atomic<curl_off_t> m_DownloadTotal{ 0 }, m_DownloadCurrent{ 0 };

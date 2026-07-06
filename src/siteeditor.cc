@@ -20,7 +20,13 @@ SiteEditor::SiteEditor(BaseObjectType* cobj, const Glib::RefPtr<Gtk::Builder>& b
     bldr->get_widget("BooruRegisterLinkButton", m_RegisterButton);
     bldr->get_widget("BooruUsernameEntry", m_UsernameEntry);
     bldr->get_widget("BooruPasswordEntry", m_PasswordEntry);
+    bldr->get_widget("BooruUsernameLabel", m_UsernameLabel);
     bldr->get_widget("BooruPasswordLabel", m_PasswordLabel);
+
+    // The username row is hidden for Gelbooru based sites (they only need an api key),
+    // so keep show_all() from forcing it back on
+    m_UsernameLabel->set_no_show_all(true);
+    m_UsernameEntry->set_no_show_all(true);
 
     m_SignalSiteChecked.connect(sigc::mem_fun(*this, &SiteEditor::on_site_checked));
 
@@ -173,8 +179,13 @@ void SiteEditor::on_my_cursor_changed()
     m_UsernameEntry->set_sensitive(can_register);
     m_PasswordEntry->set_sensitive(can_register);
 
-    if (!can_register ||
-        (s->get_type() == Type::GELBOORU && s->get_url().find("gelbooru.com") == std::string::npos))
+    // Gelbooru based sites (gelbooru.com, rule34.xxx, ...) authenticate with a single
+    // api_key/user_id string, so only ask for that and hide the unused username field
+    bool gelbooru_api{ s && s->get_type() == Type::GELBOORU };
+    m_UsernameLabel->set_visible(!gelbooru_api);
+    m_UsernameEntry->set_visible(!gelbooru_api);
+
+    if (!can_register)
         m_PasswordLabel->set_text(_("Password:"));
     else
         m_PasswordLabel->set_text(_("API Key:"));
@@ -230,7 +241,7 @@ void SiteEditor::on_url_edited(const std::string& p, const std::string& text)
     Gtk::TreeIter iter{ m_Model->get_iter(path) };
     std::string url{ text };
 
-    if (url.back() == '/')
+    if (!url.empty() && url.back() == '/')
         url = text.substr(0, text.size() - 1);
 
     iter->set_value(m_Columns.url, url);

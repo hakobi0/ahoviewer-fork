@@ -7,8 +7,10 @@ using namespace AhoViewer::Booru;
 #include "site.h"
 #include "threadpool.h"
 
+#include <algorithm>
 #include <glibmm/i18n.h>
 #include <iostream>
+#include <unordered_set>
 
 #define RETRY_COUNT 5
 
@@ -323,7 +325,10 @@ void Page::get_posts()
         }
 
         m_Curler.set_url(m_Site->get_posts_url(tags, m_Page));
-        if (m_Site->get_url().find("gelbooru.com") == std::string::npos)
+        // Gelbooru based sites authenticate via api_key/user_id URL params (stored in the
+        // password), not HTTP basic auth, so don't send the password as a basic auth header
+        if (!(m_Site->get_type() == Type::GELBOORU &&
+              m_Site->get_password().find("api_key=") != std::string::npos))
             m_Curler.set_http_auth(m_Site->get_username(), m_Site->get_password());
 
         bool success{ false };
@@ -381,6 +386,32 @@ bool Page::get_next_page()
     return true;
 }
 
+void Page::filter_blacklisted_posts()
+{
+    const auto blacklist{ Settings.get_blacklist_tags() };
+    if (blacklist.empty())
+        return;
+
+    const std::unordered_set<std::string> blocked{ blacklist.begin(), blacklist.end() };
+
+    // PostDataTuple isn't move-assignable (PostInfo has const members), so rebuild the
+    // vector by move-constructing the kept posts rather than using std::remove_if
+    std::vector<PostDataTuple> kept;
+    kept.reserve(m_Posts.size());
+    for (auto& post : m_Posts)
+    {
+        const auto& tags{ std::get<4>(post) };
+        bool is_blocked{ std::any_of(tags.begin(), tags.end(), [&](const Tag& t) {
+            return blocked.count(t.tag) > 0;
+        }) };
+
+        if (!is_blocked)
+            kept.push_back(std::move(post));
+    }
+
+    m_Posts = std::move(kept);
+}
+
 // Adds the downloaded posts to the image list.
 void Page::on_posts_downloaded()
 {
@@ -397,6 +428,12 @@ void Page::on_posts_downloaded()
     }
     else
     {
+        // Client-side blacklist: drop any post that carries a blacklisted tag
+        bool had_raw_posts{ !m_Posts.empty() };
+        filter_blacklisted_posts();
+        // The site returned posts but every one of them was blacklisted
+        bool all_blacklisted{ had_raw_posts && m_Posts.empty() };
+
         auto n_posts{ m_Posts.size() };
         if (!m_Posts.empty())
         {
@@ -410,12 +447,22 @@ void Page::on_posts_downloaded()
         // No posts added to the imagelist
         if (n_posts == 0)
         {
-            if (m_Page == 1)
-                m_SignalDownloadError(_("No results found"));
+            if (all_blacklisted)
+            {
+                // The whole page was hidden by the blacklist but the site has more
+                // results, so automatically continue to the next page rather than
+                // stopping as if we reached the end
+                Glib::signal_idle().connect_once([this]() { get_next_page(); });
+            }
             else
-                m_SignalOnLastPage();
+            {
+                if (m_Page == 1)
+                    m_SignalDownloadError(_("No results found"));
+                else
+                    m_SignalOnLastPage();
 
-            m_LastPage = true;
+                m_LastPage = true;
+            }
         }
     }
 

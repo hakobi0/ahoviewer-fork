@@ -478,10 +478,16 @@ std::string Site::get_posts_url(const std::string& tags, size_t page)
                                             (m_Type == Type::GELBOORU ? page - 1 : page),
                                             Settings.get_int("BooruLimit"),
                                             tags) };
-    // Append gelbooru api key
-    if (m_Url.find("gelbooru.com") != std::string::npos &&
-        m_Password.find("&api_key=") != std::string::npos)
+    // Append the api key for Gelbooru based sites that require one (gelbooru.com,
+    // rule34.xxx, ...). The key/user id are stored in the password as URL parameters,
+    // eg "api_key=...&user_id=...". Tolerate the user pasting it with or without a
+    // leading '&'.
+    if (m_Type == Type::GELBOORU && m_Password.find("api_key=") != std::string::npos)
+    {
+        if (m_Password.front() != '&')
+            url.append("&");
         url.append(m_Password);
+    }
 
     return url;
 }
@@ -848,10 +854,14 @@ Site::parse_post_data(unsigned char* data, const size_t size)
                     if (has_notes)
                     {
                         notes_url = Glib::ustring::compose(m_Url + NotesURI.at(m_Type), id);
-                        // Append gelbooru api key
-                        if (m_Url.find("gelbooru.com") != std::string::npos &&
-                            m_Password.find("&api_key=") != std::string::npos)
+                        // Append the api key for Gelbooru based sites that require one
+                        if (m_Type == Type::GELBOORU &&
+                            m_Password.find("api_key=") != std::string::npos)
+                        {
+                            if (m_Password.front() != '&')
+                                notes_url.append("&");
                             notes_url.append(m_Password);
+                        }
                     }
 
                     // Some older Gelbooru based sites have a bug where their thumbnail urls file

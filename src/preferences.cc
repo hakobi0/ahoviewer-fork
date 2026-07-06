@@ -66,6 +66,13 @@ PreferencesDialog::PreferencesDialog(BaseObjectType* cobj, const Glib::RefPtr<Gt
         m_SignalTitleFormatChanged();
     });
 
+    Gtk::Entry* blacklist_entry{ nullptr };
+    bldr->get_widget("BooruBlacklist", blacklist_entry);
+    blacklist_entry->set_text(Settings.get_string("BlacklistTags"));
+    blacklist_entry->signal_changed().connect([blacklist_entry]() {
+        Settings.set("BlacklistTags", blacklist_entry->get_text());
+    });
+
     // {{{ Check Buttons
     std::vector<std::string> check_settings = {
         "StartFullscreen", "HideAllFullscreen", "RememberWindowSize",   "RememberWindowPos",

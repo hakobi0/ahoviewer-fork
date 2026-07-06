@@ -71,6 +71,10 @@ namespace AhoViewer
         }
         std::vector<Booru::Tag>& get_favorite_tags() { return m_FavoriteTags; }
 
+        // Tags whose posts are hidden from booru search results (client-side blacklist).
+        // Stored as a single space separated string under the "BlacklistTags" key.
+        std::vector<std::string> get_blacklist_tags() const;
+
         bool get_geometry(int& x, int& y, int& w, int& h) const;
         void set_geometry(const int x, const int y, const int w, const int h);
 

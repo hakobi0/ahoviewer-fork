@@ -221,8 +221,22 @@ void Image::load_pixbuf(Glib::RefPtr<Gio::Cancellable> c)
     {
         Glib::RefPtr<Gio::File> file{ Gio::File::create_for_path(m_Path) };
 
-        std::array<unsigned char, 4> header;
-        file->read()->read(&header, 4);
+        // Gio::File::read() throws if the file can't be opened (eg it was removed, as can
+        // happen with transient temp files that appear in a browsed folder). This runs on a
+        // worker thread, so an uncaught exception would terminate the whole program.
+        std::array<unsigned char, 4> header{};
+        try
+        {
+            file->read()->read(&header, 4);
+        }
+        catch (const Glib::Error& e)
+        {
+            if (!c->is_cancelled())
+                std::cerr << "Failed to open file '" << m_Path << "'" << std::endl
+                          << e.what() << std::endl;
+            m_Loading = false;
+            return;
+        }
 
         if (is_gif(header.data()))
         {

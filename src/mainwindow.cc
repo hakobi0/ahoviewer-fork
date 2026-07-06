@@ -23,6 +23,13 @@ using namespace AhoViewer;
 #include <gdk/gdkwin32.h>
 #endif // GDK_WINDOWING_WIN32
 
+namespace
+{
+    // Window-title-only name, to avoid confusion with upstream ahoviewer.
+    // The binary/command name (PACKAGE) is intentionally left unchanged.
+    constexpr const char* WindowTitle{ "ahoviewer-ex" };
+}
+
 MainWindow::MainWindow(BaseObjectType* cobj, const Glib::RefPtr<Gtk::Builder>& bldr)
     : Gtk::ApplicationWindow{ cobj },
       m_LastSavePath{ Settings.get_string("LastSavePath") }
@@ -119,6 +126,9 @@ MainWindow::MainWindow(BaseObjectType* cobj, const Glib::RefPtr<Gtk::Builder>& b
 
     // Call this to make sure it is rendered in the main thread.
     Image::get_missing_pixbuf();
+
+    // Set the initial window title (no image loaded yet).
+    update_title();
 }
 
 MainWindow::~MainWindow()
@@ -132,41 +142,43 @@ void MainWindow::show()
 {
     // Restore window geometry
     int x, y, w, h;
-    if (Settings.get_geometry(x, y, w, h))
+    const bool have_geometry{ Settings.get_geometry(x, y, w, h) };
+
+    if (have_geometry)
     {
         m_LastXPos = x;
         m_LastYPos = y;
-
-        if (Settings.get_bool("RememberWindowSize"))
-            set_default_size(w, h);
-
-        if (Settings.get_bool("RememberWindowPos"))
-        {
-            set_position(Gtk::WIN_POS_NONE);
-            // Window must be shown before moving it
-            show_all();
-
-            move(x, y);
-        }
     }
 
-    if (!Settings.get_bool("RememberWindowSize"))
+    // Use the saved size only if we have one and the user wants it restored,
+    // otherwise fall back to a sensible default based on the current monitor
+    if (have_geometry && Settings.get_bool("RememberWindowSize"))
+    {
+        set_default_size(w, h);
+    }
+    else
     {
         auto dpy{ Gdk::Display::get_default() };
-        int x, y;
+        int px, py;
         Gdk::Rectangle rect;
 
-        dpy->get_default_seat()->get_pointer()->get_position(x, y);
-        dpy->get_monitor_at_point(x, y)->get_workarea(rect);
+        dpy->get_default_seat()->get_pointer()->get_position(px, py);
+        dpy->get_monitor_at_point(px, py)->get_workarea(rect);
 
         set_default_size(rect.get_width() * 0.75, rect.get_height() * 0.9);
     }
 
-    if (!Settings.get_bool("RememberWindowPos"))
-    {
-        set_position(Gtk::WIN_POS_CENTER);
-        show_all();
-    }
+    // Only restore the saved position when we have one and the user wants it
+    const bool restore_pos{ have_geometry && Settings.get_bool("RememberWindowPos") };
+
+    set_position(restore_pos ? Gtk::WIN_POS_NONE : Gtk::WIN_POS_CENTER);
+
+    // Window must be shown before moving it. show_all() must always run here or
+    // the window is built but never mapped (nothing appears on screen).
+    show_all();
+
+    if (restore_pos)
+        move(x, y);
 }
 
 void MainWindow::open_file(const Glib::ustring& path, const int index, const bool restore)
@@ -700,7 +712,7 @@ void MainWindow::update_title()
                     ss << m_ActiveImageList->get_index() + 1;
                     break;
                 case 'p':
-                    ss << PACKAGE;
+                    ss << WindowTitle;
                     break;
                 case 's':
                     ss << std::setprecision(1) << std::fixed;
@@ -723,7 +735,7 @@ void MainWindow::update_title()
     }
     else
     {
-        set_title(PACKAGE);
+        set_title(WindowTitle);
     }
 }
 

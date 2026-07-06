@@ -1067,7 +1067,7 @@ The dialog will be closed when the key is released.</property>
                                     <property name="spacing">12</property>
                                     <property name="homogeneous">True</property>
                                     <child>
-                                      <object class="GtkLabel" id="label9">
+                                      <object class="GtkLabel" id="BooruUsernameLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="label" translatable="yes">Username:</property>
@@ -1328,6 +1328,47 @@ The dialog will be closed when the key is released.</property>
                                     <property name="fill">False</property>
                                     <property name="padding">3</property>
                                     <property name="position">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="SectionRowBlacklist">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">3</property>
+                                    <child>
+                                      <object class="GtkLabel" id="BlacklistLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="label" translatable="yes">Blacklisted tags (space separated):</property>
+                                        <property name="xalign">0</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkEntry" id="BooruBlacklist">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Posts tagged with any of these are hidden from search results</property>
+                                        <property name="primary-icon-activatable">False</property>
+                                        <property name="secondary-icon-activatable">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                    <property name="padding">3</property>
+                                    <property name="position">4</property>
                                   </packing>
                                 </child>
                               </object>

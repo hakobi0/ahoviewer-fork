@@ -32,10 +32,16 @@ size_t Curler::write_cb(const unsigned char* ptr, size_t size, size_t nmemb, voi
 
     size_t len{ size * nmemb };
 
-    self->m_Buffer.insert(self->m_Buffer.end(), ptr, ptr + len);
+    size_t total;
+    {
+        std::scoped_lock lock{ self->m_BufferMutex };
+        self->m_Buffer.insert(self->m_Buffer.end(), ptr, ptr + len);
+        total = self->m_Buffer.size();
+    }
+    // ptr points at curl's own buffer, not m_Buffer, so this is safe to emit unlocked
     self->m_SignalWrite(ptr, len);
 
-    self->m_DownloadCurrent = self->m_Buffer.size();
+    self->m_DownloadCurrent = total;
 
     if (!self->is_cancelled())
         self->m_SignalProgress();
@@ -184,16 +190,38 @@ void Curler::unpause()
 
 void Curler::save_file(const std::string& path) const
 {
+    // Copy out the buffer under the lock so the write can't race with clear()/write_cb
+    std::vector<unsigned char> data;
+    {
+        std::scoped_lock lock{ m_BufferMutex };
+        data = m_Buffer;
+    }
+
     std::string etag;
     Glib::RefPtr<Gio::File> f{ Gio::File::create_for_path(path) };
-    f->replace_contents(reinterpret_cast<const char*>(m_Buffer.data()), m_Buffer.size(), "", etag);
+    f->replace_contents(reinterpret_cast<const char*>(data.data()), data.size(), "", etag);
 }
 
 void Curler::save_file_async(const std::string& path, const Gio::SlotAsyncReady& cb)
 {
     Glib::RefPtr<Gio::File> f{ Gio::File::create_for_path(path) };
+
+    // replace_contents_async does not copy the data; it reads from the pointer on a Gio
+    // worker thread until the operation completes. Snapshot the buffer into a heap object
+    // owned by the callback slot so a concurrent clear() or a re-download of this curler
+    // cannot free the data out from under the in-flight write (use-after-free).
+    auto data{ std::make_shared<std::vector<unsigned char>>() };
+    {
+        std::scoped_lock lock{ m_BufferMutex };
+        *data = m_Buffer;
+    }
+
     f->replace_contents_async(
-        cb, m_Cancel, reinterpret_cast<const char*>(m_Buffer.data()), m_Buffer.size(), "");
+        [data, cb](Glib::RefPtr<Gio::AsyncResult>& r) { cb(r); },
+        m_Cancel,
+        reinterpret_cast<const char*>(data->data()),
+        data->size(),
+        "");
 }
 
 void Curler::save_file_finish(const Glib::RefPtr<Gio::AsyncResult>& r)

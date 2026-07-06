@@ -10,6 +10,7 @@ using namespace AhoViewer::Booru;
 #include <fstream>
 #include <glib/gstdio.h>
 #include <iostream>
+#include <sstream>
 
 SettingsManager AhoViewer::Settings;
 
@@ -57,6 +58,10 @@ SettingsManager::SettingsManager()
           std::make_tuple("Konachan", "https://konachan.com", Type::MOEBOORU),
           std::make_tuple("yande.re", "https://yande.re", Type::MOEBOORU),
           std::make_tuple("Safebooru", "https://safebooru.org", Type::GELBOORU),
+          // rule34.xxx runs Gelbooru Beta 0.2; its API lives on the api. subdomain and
+          // requires an api_key/user_id (set these in the site's password as
+          // "&api_key=...&user_id=...")
+          std::make_tuple("Rule34", "https://api.rule34.xxx", Type::GELBOORU),
       }),
       m_DefaultKeybindings({
           { "win.OpenFile", { "<Primary>o" } },
@@ -174,6 +179,17 @@ std::string SettingsManager::get_string(const std::string& key) const
         return m_DefaultStrings.at(key);
 
     return "";
+}
+
+std::vector<std::string> SettingsManager::get_blacklist_tags() const
+{
+    std::vector<std::string> tags;
+    std::istringstream ss{ get_string("BlacklistTags") };
+    std::string tag;
+    while (ss >> tag)
+        tags.push_back(tag);
+
+    return tags;
 }
 
 std::vector<std::shared_ptr<Site>>& SettingsManager::get_sites()

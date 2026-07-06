@@ -104,6 +104,9 @@ namespace AhoViewer::Booru
         void get_posts_tags();
         bool get_next_page();
 
+        // Removes posts carrying a blacklisted tag from m_Posts (client-side blacklist)
+        void filter_blacklisted_posts();
+
         Gtk::Widget* get_tab() const { return m_Tab; }
         bool is_saving() const { return m_Saving; }
 

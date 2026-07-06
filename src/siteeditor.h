@@ -166,7 +166,7 @@ namespace AhoViewer
         Gtk::TreeViewColumn *m_NameColumn, *m_UrlColumn, *m_SampleColumn;
         Gtk::LinkButton* m_RegisterButton;
         Gtk::Entry *m_UsernameEntry, *m_PasswordEntry;
-        Gtk::Label* m_PasswordLabel;
+        Gtk::Label *m_UsernameLabel, *m_PasswordLabel;
 
         std::vector<std::shared_ptr<Booru::Site>>& m_Sites;
         Glib::RefPtr<Gdk::Pixbuf> m_ErrorPixbuf;

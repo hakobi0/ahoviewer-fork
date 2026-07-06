@@ -2,6 +2,43 @@
 
 A GTK image viewer, manga reader, and booru browser.
 
+> **Note:** This is a personal fork of [ahodesuka/ahoviewer](https://github.com/ahodesuka/ahoviewer)
+> with additional features and bug fixes. See [Changes in this fork](#changes-in-this-fork)
+> and [Credits](#credits) below.
+
+## Changes in this fork
+
+### Motivation
+
+ahoviewer has been one of my favorite pieces of software on Linux — I've been using it
+since 2017 and wanted to keep using it. For the last few years, though, it had become
+broken for me: it wouldn't open, or when it did it crashed constantly, and Rule34 booru
+support (which used to work) had stopped working in the last version. This fork exists to
+get it running again for me and to bring back the features I relied on.
+
+The following features and fixes were added on top of upstream. All development in
+this fork was done with the assistance of Claude (Anthropic's AI).
+
+### New features
+* **rule34.xxx support** — added as a default booru site (Gelbooru Beta 0.2 type).
+  Because the API now requires authentication, it ships preconfigured; put your
+  `api_key=...&user_id=...` credentials in the site's password field.
+* **Generalised Gelbooru API-key handling** — any Gelbooru-type site whose password
+  contains `api_key=` now uses key-based auth (previously hardcoded to gelbooru.com).
+* **Client-side tag blacklist** — Preferences → Booru Browser → *Blacklisted tags
+  (space separated)*. Posts whose tags match the blacklist are hidden, and the browser
+  auto-advances to the next page if an entire page is filtered out.
+* **Site editor UX** — Gelbooru-type sites now show a single *API Key* field instead
+  of separate Username/API Key rows.
+
+### Bug fixes
+* Fixed a blank window on a fresh/empty config (`show_all()` was never called).
+* Fixed a crash when adding a site with an empty URL in the site editor.
+* Fixed a crash when opening a video or any folder containing an unreadable file
+  (unhandled `Gio::Error` on the image-loading worker thread).
+* Fixed a crash while searching caused by a data race and use-after-free in the
+  network buffer (`Booru::Curler`).
+
 ## Building
 ### Dependencies
 * C++ Compiler that supports the C++17 standard is required. (g++ 7, clang 5)
@@ -102,3 +139,14 @@ The .typelib file that is compiled must be installed via `ninja install`, or you
 | Copy Booru Post URL to Clipboard          | Control+y       |
 | Copy Booru Image URL to Clipboard         | y               |
 | Copy Booru Image Data to Clipboard        | Control+Shift+y |
+
+## Credits
+
+* **[ahoka / ahodesuka](https://github.com/ahodesuka)** — original author and creator of
+  ahoviewer. All credit for the application itself goes to them. The original project is
+  at [ahodesuka/ahoviewer](https://github.com/ahodesuka/ahoviewer).
+* **Claude (Anthropic's AI)** — assisted with the additional features and bug fixes listed
+  in [Changes in this fork](#changes-in-this-fork).
+
+ahoviewer is released under the [MIT License](LICENSE); this fork retains that license and
+the original copyright notice.
