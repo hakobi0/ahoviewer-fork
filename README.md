@@ -40,6 +40,11 @@ this fork was done with the assistance of Claude (Anthropic's AI).
   network buffer (`Booru::Curler`).
 
 ## Building
+
+> **Note:** This fork was built and tested on **Fedora 44** only. I can't guarantee it
+> will build on your system. Windows support has been dropped since I use Linux
+> exclusively.
+
 ### Dependencies
 * C++ Compiler that supports the C++17 standard is required. (g++ 7, clang 5)
 * meson `>= 0.47.0`
