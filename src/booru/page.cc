@@ -10,6 +10,7 @@ using namespace AhoViewer::Booru;
 #include <algorithm>
 #include <glibmm/i18n.h>
 #include <iostream>
+#include <sstream>
 #include <unordered_set>
 
 #define RETRY_COUNT 5
@@ -180,6 +181,26 @@ void Page::search(const std::shared_ptr<Site>& site)
     m_TabLabel->set_text(label);
     m_MenuLabel->set_text(label);
     m_TabIcon->set(m_Site->get_icon_pixbuf());
+
+    // If one of the searched tags is itself blacklisted, every matching post would
+    // carry that tag and be filtered out. Detect this up-front and stop, instead of
+    // fetching and discarding page after page (which wastes bandwidth and API calls).
+    const auto blacklist{ Settings.get_blacklist_tags() };
+    if (!blacklist.empty() && !m_SearchTags.empty())
+    {
+        const std::unordered_set<std::string> blocked{ blacklist.begin(), blacklist.end() };
+        std::istringstream ss{ m_SearchTags };
+        std::string tag;
+        while (ss >> tag)
+        {
+            if (blocked.count(tag) > 0)
+            {
+                m_LastPage = true;
+                m_SignalDownloadError(_("No results found (a searched tag is blacklisted)"));
+                return;
+            }
+        }
+    }
 
     m_Curler.set_share_handle(m_Site->get_share_handle());
     m_Curler.set_referer(m_Site->get_url());
